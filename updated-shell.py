@@ -4,9 +4,39 @@ import sys
 import shlex
 import platform
 import signal
+import time
 from datetime import datetime
 from colorama import init, Fore, Back, Style
 
+
+# Loading Bar
+def loading_bar(bard, bar_length = 50, loading_time = 8.0):
+    """Display a loading bar in the console."""
+    print(f"{Fore.CYAN}{bard}:{Style.RESET_ALL}")
+    steps = bar_length * 1
+    interval = loading_time / steps
+    symbols = ['░', '▒', '▓', '█']
+
+    for step in range(steps + 1):
+        progress = step / steps
+        completed = int(progress * bar_length)
+        loading_bar = ""
+        for i in range(bar_length):
+            if i < completed - 1:
+                loading_bar += f"{Fore.CYAN}{symbols[-1]}{Style.RESET_ALL}"
+            elif i == completed - 1:
+                loading_bar += f"{Fore.GREEN}{symbols[step % len(symbols)]}{Style.RESET_ALL}"
+            else:
+                loading_bar += f"{Fore.GREEN}░{Style.RESET_ALL}"
+        
+        percentage = progress * 100
+        sys.stdout.write(f"\r{loading_bar} {percentage:5.1f}%")
+        sys.stdout.flush()
+        time.sleep(interval)
+    
+    final_bar = f"{Fore.GREEN}{symbols[-1] * bar_length}{Style.RESET_ALL}"
+    sys.stdout.write(f"\r{final_bar} 100.0%\n")
+    sys.stdout.flush()
 # Initialize colorama for cross-platform color support
 init(autoreset=True)
 
@@ -15,6 +45,14 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
+
+print(datetime.now().isoformat())
+
+
+def testo():
+    loading_bar("Deploying Warzone Assets", bar_length=50, loading_time=8.0)
+    print(f"\n{Fore.GREEN}Assets Deployed{Style.RESET_ALL}")    
+
 
 def list_files(path="."):
     try:
@@ -260,6 +298,7 @@ def main():
             continue
 
         if command.startswith("install"):
+            loading_bar("Installing", bar_length=50, loading_time=5.0)
             try:
                 package = shlex.split(command)[1]
                 install_package(package)
@@ -286,6 +325,10 @@ def main():
                 touch_file(shlex.split(command)[1])
             except IndexError:
                 print(f"{Fore.RED}touch: missing file name{Style.RESET_ALL}")
+            continue
+
+        if command.startswith("testo"):
+            testo()
             continue
 
         execute_command(command)
