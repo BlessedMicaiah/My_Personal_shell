@@ -8,9 +8,8 @@ import time
 from datetime import datetime
 from colorama import init, Fore, Back, Style
 
-
 # Loading Bar
-def loading_bar(bard, bar_length = 50, loading_time = 8.0):
+def loading_bar(bard, bar_length=50, loading_time=8.0):
     """Display a loading bar in the console."""
     print(f"{Fore.CYAN}{bard}:{Style.RESET_ALL}")
     steps = bar_length * 1
@@ -30,13 +29,14 @@ def loading_bar(bard, bar_length = 50, loading_time = 8.0):
                 loading_bar += f"{Fore.GREEN}░{Style.RESET_ALL}"
         
         percentage = progress * 100
-        sys.stdout.write(f"\r{loading_bar} {percentage:5.1f}%")
+        sys.stdout.write(f"\r{loading_bar}{Fore.RED}{percentage:5.1f}%{Style.RESET_ALL}")
         sys.stdout.flush()
         time.sleep(interval)
     
     final_bar = f"{Fore.GREEN}{symbols[-1] * bar_length}{Style.RESET_ALL}"
-    sys.stdout.write(f"\r{final_bar} 100.0%\n")
+    sys.stdout.write(f"\r{final_bar}{Fore.GREEN} 100.0%{Style.RESET_ALL}\n")
     sys.stdout.flush()
+
 # Initialize colorama for cross-platform color support
 init(autoreset=True)
 
@@ -48,11 +48,9 @@ signal.signal(signal.SIGINT, signal_handler)
 
 print(datetime.now().isoformat())
 
-
 def testo():
     loading_bar("Deploying Warzone Assets", bar_length=50, loading_time=8.0)
-    print(f"\n{Fore.GREEN}Assets Deployed{Style.RESET_ALL}")    
-
+    print(f"{Fore.GREEN}Assets Deployed{Style.RESET_ALL}")    
 
 def list_files(path="."):
     try:
@@ -84,6 +82,8 @@ def print_help():
         ("sudo <command>", "Execute a command with sudo privileges"),
         ("cat <file>", "Display content of a file"),
         ("touch <file>", "Create an empty file"),
+        ("rm <file>", "Remove a file"),
+        ("vim <file>", "Edit a file with vim"),
     ]
     for cmd, desc in help_commands:
         print(f"  {Fore.CYAN}{cmd}{Style.RESET_ALL:<20} - {desc}")
@@ -181,6 +181,23 @@ def touch_file(file_name):
         print(f"{Fore.GREEN}File {file_name} created or updated.{Style.RESET_ALL}")
     except Exception as e:
         print(f"{Fore.RED}Error creating file: {e}{Style.RESET_ALL}")
+
+def remove_file(file_name):
+    try:
+        os.remove(file_name)
+        print(f"{Fore.GREEN}File {file_name} removed.{Style.RESET_ALL}")
+    except FileNotFoundError:
+        print(f"{Fore.RED}File not found: {file_name}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Error removing file: {e}{Style.RESET_ALL}")
+
+def edit_file(file_name):
+    try:
+        subprocess.call(['vim', file_name])
+    except FileNotFoundError:
+        print(f"{Fore.RED}Vim not found. Please install vim.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Error editing file: {e}{Style.RESET_ALL}")
 
 def main():
     history = []
@@ -325,6 +342,20 @@ def main():
                 touch_file(shlex.split(command)[1])
             except IndexError:
                 print(f"{Fore.RED}touch: missing file name{Style.RESET_ALL}")
+            continue
+
+        if command.startswith("rm"):
+            try:
+                remove_file(shlex.split(command)[1])
+            except IndexError:
+                print(f"{Fore.RED}rm: missing file name{Style.RESET_ALL}")
+            continue
+
+        if command.startswith("vim"):
+            try:
+                edit_file(shlex.split(command)[1])
+            except IndexError:
+                print(f"{Fore.RED}vim: missing file name{Style.RESET_ALL}")
             continue
 
         if command.startswith("testo"):
