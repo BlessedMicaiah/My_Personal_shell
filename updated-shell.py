@@ -7,6 +7,9 @@ import signal
 import time
 from datetime import datetime
 from colorama import init, Fore, Back, Style
+import pkg_resources
+import requests
+from tqdm import tqdm
 
 # Loading Bar
 def loading_bar(bard, bar_length=50, loading_time=8.0):
@@ -72,7 +75,7 @@ def print_help():
         ("mkdir <dir>", "Create a new directory"),
         ("rmdir <dir>", "Remove an empty directory"),
         ("find <name>", "Search for files or directories"),
-        ("clear", "Clear the terminal screen"),
+        ("cls/clear", "Clear the terminal screen"),
         ("help", "Display this help message"),
         ("exit/quit", "Exit the shell"),
         ("sysinfo", "Display system information"),
@@ -84,6 +87,7 @@ def print_help():
         ("touch <file>", "Create an empty file"),
         ("rm <file>", "Remove a file"),
         ("vim <file>", "Edit a file with vim"),
+        ("devtool <tool>", "Install development tools (vim/mysql/vscode/git)")
     ]
     for cmd, desc in help_commands:
         print(f"  {Fore.CYAN}{cmd}{Style.RESET_ALL:<20} - {desc}")
@@ -199,6 +203,63 @@ def edit_file(file_name):
     except Exception as e:
         print(f"{Fore.RED}Error editing file: {e}{Style.RESET_ALL}")
 
+def download_file(url, filename):
+    """Download a file from URL with progress bar."""
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(filename, 'wb') as file, tqdm(
+        desc=filename,
+        total=total_size,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as pbar:
+        for data in response.iter_content(chunk_size=1024):
+            size = file.write(data)
+            pbar.update(size)
+
+def install_development_tool(tool_name):
+    """Install common development tools."""
+    system = platform.system().lower()
+    
+    tool_installers = {
+        'vim': {
+            'linux': lambda: execute_command('sudo apt-get install -y vim'),
+            'darwin': lambda: execute_command('brew install vim'),
+            'windows': lambda: print(f"{Fore.YELLOW}Please download Vim from: https://www.vim.org/download.php{Style.RESET_ALL}")
+        },
+        'mysql': {
+            'linux': lambda: execute_command('sudo apt-get install -y mysql-server'),
+            'darwin': lambda: execute_command('brew install mysql'),
+            'windows': lambda: print(f"{Fore.YELLOW}Please download MySQL from: https://dev.mysql.com/downloads/{Style.RESET_ALL}")
+        },
+        'vscode': {
+            'linux': lambda: execute_command('sudo snap install code --classic'),
+            'darwin': lambda: execute_command('brew install --cask visual-studio-code'),
+            'windows': lambda: print(f"{Fore.YELLOW}Please download VS Code from: https://code.visualstudio.com/download{Style.RESET_ALL}")
+        },
+        'git': {
+            'linux': lambda: execute_command('sudo apt-get install -y git'),
+            'darwin': lambda: execute_command('brew install git'),
+            'windows': lambda: print(f"{Fore.YELLOW}Please download Git from: https://git-scm.com/download/win{Style.RESET_ALL}")
+        }
+    }
+
+    if tool_name not in tool_installers:
+        print(f"{Fore.RED}Tool '{tool_name}' is not supported. Available tools: {', '.join(tool_installers.keys())}{Style.RESET_ALL}")
+        return
+
+    try:
+        if system in tool_installers[tool_name]:
+            print(f"{Fore.CYAN}Installing {tool_name}...{Style.RESET_ALL}")
+            tool_installers[tool_name][system]()
+            print(f"{Fore.GREEN}{tool_name} installation completed!{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Installation of {tool_name} is not supported on {system}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Error installing {tool_name}: {e}{Style.RESET_ALL}")
+
 def main():
     history = []
 
@@ -231,6 +292,11 @@ def main():
         if command == "clear":
             clear_screen()
             continue
+
+        if command == "cls":
+            clear_screen()
+            continue
+
 
         if command.startswith("cd"):
             try:
@@ -360,6 +426,15 @@ def main():
 
         if command.startswith("testo"):
             testo()
+            continue
+
+        if command.startswith("devtool"):
+            try:
+                tool = shlex.split(command)[1]
+                install_development_tool(tool)
+            except IndexError:
+                print(f"{Fore.RED}devtool: missing tool name{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Available tools: vim, mysql, vscode, git{Style.RESET_ALL}")
             continue
 
         execute_command(command)
